@@ -1,0 +1,20 @@
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o tmp/api.exe ./cmd/api"
+bin = "tmp/api.exe"
+delay = 300
+exclude_dir = ["tmp", "vendor"]
+exclude_regex = ["_test.go"]
+
+[color]
+  app = ""
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+  
+[log]
+time = true
