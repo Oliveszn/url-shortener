@@ -61,3 +61,19 @@ func extractEnv(key string) (string, error) {
 
 	return val, nil
 }
+
+var config *Config
+
+// GetConfig returns the application configuration
+// It loads the configuration if it hasn't been loaded yet
+func GetConfig() *Config {
+	if config == nil {
+		cfg, err := Load()
+		if err != nil {
+			panic("Failed to load configuration: " + err.Error())
+		}
+
+		config = &cfg
+	}
+	return config
+}

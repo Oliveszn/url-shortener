@@ -1,0 +1,102 @@
+basePath: /api/v1
+definitions:
+  dtos.RegisterUserDto:
+    description: Registration data for creating a new user account
+    properties:
+      confirmPassword:
+        description: |-
+          Confirmation of the password
+          @example SecureP@ssw0rd
+        example: SecureP@ssw0rd
+        type: string
+      email:
+        description: |-
+          User's email address
+          @example john.doe@example.com
+        example: john.doe@example.com
+        type: string
+      password:
+        description: |-
+          User's password (min 8 characters)
+          @example SecureP@ssw0rd
+        example: SecureP@ssw0rd
+        type: string
+    required:
+    - confirmPassword
+    - email
+    - password
+    type: object
+  dtos.StructuredResponse:
+    description: Standard response format containing success status, HTTP status code,
+      message, and optional payload
+    properties:
+      message:
+        description: |-
+          Human-readable message
+          @example Operation completed successfully
+        example: Operation completed successfully
+        type: string
+      payload:
+        description: |-
+          Optional payload containing response data
+          @example {"id":1,"name":"Example Item"}
+      status:
+        description: |-
+          HTTP status code
+          @example 200
+        example: 200
+        type: integer
+      success:
+        description: |-
+          Whether the operation was successful
+          @example true
+        example: true
+        type: boolean
+    type: object
+host: localhost:5000
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: A URL shortener built with Go
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Url shortener
+  version: "1.0"
+paths:
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with the provided details
+      parameters:
+      - description: User registration data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RegisterUserDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+      summary: Register a new user
+      tags:
+      - auth
+securityDefinitions:
+  BearerAuth:
+    description: 'Enter the token with the `Bearer: ` prefix, e.g. ''Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'''
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
