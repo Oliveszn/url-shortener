@@ -94,15 +94,15 @@ type contextKey string
 const userIDKey contextKey = "userID"
 
 // SetUserIDInContext adds the user ID to the context
-func SetUserIDInContext(ctx context.Context, userID uint) context.Context {
+func SetUserIDInContext(ctx context.Context, userID string) context.Context {
 	return context.WithValue(ctx, userIDKey, userID)
 }
 
 // GetUserIDFromContext retrieves the user ID from the context
-func GetUserIDFromContext(ctx context.Context) (uint, error) {
-	userID, ok := ctx.Value(userIDKey).(uint)
+func GetUserIDFromContext(ctx context.Context) (string, error) {
+	userID, ok := ctx.Value(userIDKey).(string)
 	if !ok {
-		return 0, errors.New("user ID not found in context")
+		return "", errors.New("user ID not found in context")
 	}
 	return userID, nil
 }
