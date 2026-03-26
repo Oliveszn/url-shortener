@@ -4,9 +4,12 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"url-shortener/internals/analytics"
+	"url-shortener/internals/cache"
 	"url-shortener/internals/config"
 	db "url-shortener/internals/database"
 	"url-shortener/internals/logger"
+	"url-shortener/internals/repository"
 	"url-shortener/internals/router"
 
 	_ "url-shortener/docs"
@@ -50,10 +53,40 @@ func main() {
 		}
 	}()
 
+	redisCache, err := cache.NewRedisCache(
+		cfg.REDIS_ADDR,
+		cfg.REDIS_PASSWORD,
+		cfg.REDIS_DB,
+	)
+	if err != nil {
+		log.Fatalf("Redis error: %v", err)
+	}
+	defer redisCache.Close()
+
 	logger.InitLogger(cfg.ENV)
 	defer zap.L().Sync()
 
-	router := router.NewRouter(database.DB, logger.Logger)
+	urlRepo := repository.NewURLRepository(database.DB, 100, logger.Logger)
+
+	//worker
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+	defer workerCancel()
+	clickRepo := repository.NewClickRepository(database.DB)
+	analyticsWorker := analytics.NewWorker(clickRepo, 1000)
+	go analyticsWorker.Run(workerCtx)
+
+	// Dependencies struct
+	deps := router.Dependencies{
+		Repo:   urlRepo,
+		Redis:  redisCache,
+		DB:     database.DB,
+		Worker: analyticsWorker,
+		Logger: logger.Logger,
+		// BaseURL: "http://localhost:" + cfg.ServerPort,
+	}
+
+	// router := router.NewRouter(database.DB, logger.Logger, redisCache)
+	router := router.NewRouter(deps)
 
 	log.Printf("Server running on port %s", cfg.ServerPort)
 

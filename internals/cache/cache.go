@@ -15,26 +15,18 @@ const (
 	keyPrefix = "url:"
 )
 
-// ErrCacheMiss is returned when a slug is not in the cache.
-// The caller should fall through to Postgres and then populate the cache.
 var ErrCacheMiss = errors.New("cache: miss")
 
-// RedisCache wraps a go-redis client with typed URL caching operations.
 type RedisCache struct {
 	client *redis.Client
 }
 
-// NewRedisCache connects to Redis and returns a RedisCache.
-// The caller is responsible for calling Close() when done.
 func NewRedisCache(addr, password string, db int) (*RedisCache, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: password,
 		DB:       db,
 
-		// Connection pool settings.
-		// PoolSize should roughly match the number of concurrent redirect
-		// handlers. 10 is safe for a small deployment.
 		PoolSize:     10,
 		DialTimeout:  2 * time.Second,
 		ReadTimeout:  500 * time.Millisecond,
@@ -52,35 +44,28 @@ func NewRedisCache(addr, password string, db int) (*RedisCache, error) {
 }
 
 // Get retrieves the long URL for a slug.
-// Returns ErrCacheMiss if the key does not exist in Redis.
 func (c *RedisCache) Get(ctx context.Context, slug string) (string, error) {
 	val, err := c.client.Get(ctx, keyPrefix+slug).Result()
 	if errors.Is(err, redis.Nil) {
 		return "", ErrCacheMiss
 	}
+	//treat redis cache erros as cache missed rather than failiures
+	///so basically if its down we just hadnle gracefully instead of sending 500 to user
+
 	if err != nil {
-		// Treat Redis errors as cache misses rather than hard failures.
-		// Rationale: Redis is a performance optimisation. If it's down, the
-		// system should degrade gracefully by falling through to Postgres,
-		// not by returning 500 to the user.
-		// In production, emit a metric here (e.g. Prometheus counter) so you
-		// know when Redis is unhealthy.
+
 		return "", ErrCacheMiss
 	}
 	return val, nil
 }
 
-// Set stores a slug → long URL mapping with an appropriate TTL.
-//
-// expiresAt is the link's absolute expiry time (nil = no expiry).
-// The cache TTL is capped at the time remaining until expiry so we never
-// serve a cached redirect past the link's expiry.
+// /set stores the slug and long url plus ttl is capped at time reamaining so no link is served after alink expires
 func (c *RedisCache) Set(ctx context.Context, slug, longURL string, expiresAt *time.Time) error {
 	ttl := DefaultTTL
 	if expiresAt != nil {
 		remaining := time.Until(*expiresAt)
 		if remaining <= 0 {
-			// Already expired — don't cache it at all.
+			// Already expired  don't cache it at all.
 			return nil
 		}
 		if remaining < ttl {
@@ -89,16 +74,13 @@ func (c *RedisCache) Set(ctx context.Context, slug, longURL string, expiresAt *t
 	}
 
 	if err := c.client.Set(ctx, keyPrefix+slug, longURL, ttl).Err(); err != nil {
-		// Log but don't fail — cache write failure is non-fatal.
+		// Log but don't fail
 		return fmt.Errorf("cache.Set: %w", err)
 	}
 	return nil
 }
 
-// Delete removes a slug from the cache immediately.
-// Called when a link is deactivated (soft-deleted). We must invalidate
-// synchronously here — a stale cache entry would keep the link redirecting
-// until the TTL expires, which is unacceptable for a deleted link.
+// /// Delete removes a slug from cace on soft delete
 func (c *RedisCache) Delete(ctx context.Context, slug string) error {
 	if err := c.client.Del(ctx, keyPrefix+slug).Err(); err != nil {
 		return fmt.Errorf("cache.Delete: %w", err)

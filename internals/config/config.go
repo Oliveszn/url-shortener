@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -13,6 +14,10 @@ type Config struct {
 	ServerPort string
 	JWTSecret  string
 	ENV        string
+
+	REDIS_ADDR     string
+	REDIS_PASSWORD string
+	REDIS_DB       int
 }
 
 func Load() (Config, error) {
@@ -43,12 +48,31 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+
+	redisAddr, err := extractEnv("REDIS_ADDR")
+	if err != nil {
+		return Config{}, err
+	}
+
+	redisPassword, err := extractEnv("REDIS_PASSWORD")
+	if err != nil {
+		return Config{}, err
+	}
+
+	redisDB, _ := extractEnv("REDIS_DB")
+	dbInt, err := strconv.Atoi(redisDB)
+	if err != nil {
+		return Config{}, fmt.Errorf("invalid REDIS_DB")
+	}
 	return Config{
-		MongoURI:   mongoURI,
-		MongoDB:    mongoDB,
-		ServerPort: port,
-		JWTSecret:  jwtsecret,
-		ENV:        env,
+		MongoURI:       mongoURI,
+		MongoDB:        mongoDB,
+		ServerPort:     port,
+		JWTSecret:      jwtsecret,
+		ENV:            env,
+		REDIS_ADDR:     redisAddr,
+		REDIS_PASSWORD: redisPassword,
+		REDIS_DB:       dbInt,
 	}, nil
 }
 

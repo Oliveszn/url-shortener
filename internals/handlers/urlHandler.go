@@ -79,7 +79,6 @@ func (h *URLHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		h.Logger.Error("failed to delete url", zap.Error(err))
 	}
 
-	// 🔥 Invalidate Redis cache
 	if response.Success && h.cache != nil {
 		err := h.cache.Delete(r.Context(), slug)
 		if err != nil {
