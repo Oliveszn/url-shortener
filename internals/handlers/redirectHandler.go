@@ -24,6 +24,15 @@ func NewRedirectHandler(repo *repository.URLRepository, c *cache.RedisCache, w *
 	}, repo: repo, cache: c, worker: w}
 }
 
+// @Summary Redirect to long URL
+// @Description Redirects the user to the original long URL for the given slug
+// @Tags redirect
+// @Produce json
+// @Param slug path string true "Slug of the shortened URL"
+// @Success 302 "Redirects to the long URL"
+// @Failure 404 {object} dtos.StructuredResponse "Slug not found"
+// @Failure 500 {object} dtos.StructuredResponse "Internal server error"
+// @Router /{slug} [get]
 func (h *RedirectHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 	if slug == "" {

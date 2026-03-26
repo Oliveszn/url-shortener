@@ -24,6 +24,15 @@ func NewAnalyticsHandler(db *mongo.Database, logger *zap.Logger) *AnalyticsHandl
 	}
 }
 
+// @Summary Get URL analytics
+// @Description Get total clicks and unique IP count for a URL
+// @Tags analytics
+// @Produce json
+// @Param slug path string true "Slug of the URL to get stats for"
+// @Success 200 {object} dtos.StructuredResponse "Analytics fetched successfully"
+// @Failure 400 {object} dtos.StructuredResponse "Slug is required"
+// @Failure 500 {object} dtos.StructuredResponse "Internal server error"
+// @Router /analytics/{slug} [get]
 func (h *AnalyticsHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 	if slug == "" {
