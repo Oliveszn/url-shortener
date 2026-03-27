@@ -6,6 +6,7 @@ import (
 	"url-shortener/internals/dtos"
 	"url-shortener/internals/services"
 
+	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.uber.org/zap"
 )
@@ -16,13 +17,13 @@ type URLHandler struct {
 	service *services.URLService
 }
 
-func NewURLHandler(db *mongo.Database, c *cache.RedisCache, logger *zap.Logger) *URLHandler {
+func NewURLHandler(db *mongo.Database, c *cache.RedisCache, logger *zap.Logger, baseURL string) *URLHandler {
 	return &URLHandler{
 		BaseHandler: BaseHandler{
 			Logger: logger,
 		},
 		cache:   c,
-		service: services.NewURLService(db, logger),
+		service: services.NewURLService(db, logger, baseURL),
 	}
 }
 
@@ -60,16 +61,13 @@ func (h *URLHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 	h.ReturnJSONResponse(w, response)
 }
 
-// @Summary Shorten a URL
-// @Description Create a shortened URL for the provided long URL
+// @Summary List user URLs
+// @Description List all shortened URLs for the authenticated user
 // @Tags url
-// @Accept json
 // @Produce json
-// @Param url body dtos.CreateURLDto true "URL to shorten"
-// @Success 201 {object} dtos.StructuredResponse "Short URL created successfully"
-// @Failure 400 {object} dtos.StructuredResponse "Bad request"
+// @Success 200 {object} dtos.StructuredResponse "List of user URLs"
 // @Failure 500 {object} dtos.StructuredResponse "Internal server error"
-// @Router /shorten [post]
+// @Router /list [get]
 func (h *URLHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	response, err := h.service.ListUserURLs(r.Context())
@@ -81,16 +79,20 @@ func (h *URLHandler) List(w http.ResponseWriter, r *http.Request) {
 	h.ReturnJSONResponse(w, response)
 }
 
-// @Summary List user URLs
-// @Description List all shortened URLs for the authenticated user
+// @Summary Delete a shortened URL
+// @Description Delete a shortened URL by its slug
 // @Tags url
 // @Produce json
-// @Success 200 {object} dtos.StructuredResponse "List of user URLs"
+// @Param slug path string true "Slug of the URL to delete"
+// @Success 200 {object} dtos.StructuredResponse "URL deleted successfully"
+// @Failure 400 {object} dtos.StructuredResponse "Bad request"
+// @Failure 404 {object} dtos.StructuredResponse "Slug not found"
 // @Failure 500 {object} dtos.StructuredResponse "Internal server error"
-// @Router /list [get]
+// @Router /delete/{slug} [delete]
 func (h *URLHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
-	slug := r.PathValue("slug")
+	vars := mux.Vars(r)
+	slug := vars["slug"]
 	if slug == "" {
 		h.ReturnJSONResponse(w, dtos.StructuredResponse{
 			Success: false,

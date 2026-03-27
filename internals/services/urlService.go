@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"url-shortener/internals/dtos"
 	"url-shortener/internals/repository"
@@ -17,11 +18,14 @@ type URLService struct {
 	repo           *repository.URLRepository
 	obfuscationKey int64
 	logger         *zap.Logger
+	baseURL        string
 }
 
-func NewURLService(db *mongo.Database, logger *zap.Logger) *URLService {
+func NewURLService(db *mongo.Database, logger *zap.Logger, baseUrl string) *URLService {
 	return &URLService{
-		repo: repository.NewURLRepository(db, 0, logger),
+		repo:    repository.NewURLRepository(db, 0, logger),
+		logger:  logger,
+		baseURL: baseUrl,
 	}
 }
 
@@ -34,26 +38,16 @@ func (s *URLService) CreateURL(ctx context.Context, dto dtos.CreateURLDto) (dtos
 		}, nil
 	}
 
-	// var userID *bson.ObjectID = utils.GetUserIDFromContext(ctx)
+	var userID *bson.ObjectID = nil
 	userIDStr, err := utils.GetUserIDFromContext(ctx)
-	if err != nil {
-		return dtos.StructuredResponse{
-			Success: false,
-			Status:  http.StatusUnauthorized,
-			Message: "Unauthorized",
-		}, err
+	if err == nil {
+		id, err := bson.ObjectIDFromHex(userIDStr)
+		if err == nil {
+			userID = &id
+		}
 	}
 
-	userID, err := bson.ObjectIDFromHex(userIDStr)
-	if err != nil {
-		return dtos.StructuredResponse{
-			Success: false,
-			Status:  http.StatusInternalServerError,
-			Message: "Invalid user ID",
-		}, err
-	}
-
-	url, err := s.repo.Create(ctx, dto.URL, &userID, dto.CustomAlias, nil)
+	url, err := s.repo.Create(ctx, dto.URL, userID, dto.CustomAlias, nil)
 	if err != nil {
 		return dtos.StructuredResponse{
 			Success: false,
@@ -62,13 +56,15 @@ func (s *URLService) CreateURL(ctx context.Context, dto dtos.CreateURLDto) (dtos
 		}, err
 	}
 
+	shortURL := fmt.Sprintf("%s/%s", s.baseURL, url.Slug)
+
 	return dtos.StructuredResponse{
 		Success: true,
 		Status:  http.StatusCreated,
 		Message: "Short URL created",
 		Payload: map[string]interface{}{
-			"slug": url.Slug,
-			"url":  url.LongURL,
+			"shortUrl":    shortURL,
+			"originalUrl": url.LongURL,
 		},
 	}, nil
 }
@@ -80,8 +76,8 @@ func (s *URLService) ListUserURLs(ctx context.Context) (dtos.StructuredResponse,
 		return dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusUnauthorized,
-			Message: "authentication required",
-		}, err
+			Message: "Login to view your URL's",
+		}, nil
 	}
 
 	userID, err := bson.ObjectIDFromHex(userIDStr)
@@ -100,6 +96,15 @@ func (s *URLService) ListUserURLs(ctx context.Context) (dtos.StructuredResponse,
 			Status:  http.StatusInternalServerError,
 			Message: "failed to fetch URLs",
 		}, err
+	}
+
+	if len(urls) == 0 {
+		return dtos.StructuredResponse{
+			Success: true,
+			Status:  http.StatusOK,
+			Message: "No URLs available for this user",
+			Payload: []interface{}{},
+		}, nil
 	}
 
 	return dtos.StructuredResponse{

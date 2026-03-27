@@ -1,5 +1,42 @@
 basePath: /api/v1
 definitions:
+  dtos.CreateURLDto:
+    description: Url data for creating a short URL
+    properties:
+      customalias:
+        description: |-
+          User's preffered alias
+          @example abc123
+        example: abc123
+        type: string
+      longurl:
+        description: |-
+          User's original URL
+          @example https://my-portfolio.com
+        example: https://my-portfolio.com
+        type: string
+    required:
+    - longurl
+    type: object
+  dtos.LoginUserDto:
+    description: Login credentials for authenticating a user
+    properties:
+      email:
+        description: |-
+          User's email address
+          @example john.doe@example.com
+        example: john.doe@example.com
+        type: string
+      password:
+        description: |-
+          User's password
+          @example SecureP@ssw0rd
+        example: SecureP@ssw0rd
+        type: string
+    required:
+    - email
+    - password
+    type: object
   dtos.RegisterUserDto:
     description: Registration data for creating a new user account
     properties:
@@ -67,6 +104,105 @@ info:
   title: Url shortener
   version: "1.0"
 paths:
+  /{slug}:
+    get:
+      description: Redirects the user to the original long URL for the given slug
+      parameters:
+      - description: Slug of the shortened URL
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirects to the long URL
+        "404":
+          description: Slug not found
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+      summary: Redirect to long URL
+      tags:
+      - redirect
+  /analytics/{slug}:
+    get:
+      description: Get total clicks and unique IP count for a URL
+      parameters:
+      - description: Slug of the URL to get stats for
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Analytics fetched successfully
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "400":
+          description: Slug is required
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+      summary: Get URL analytics
+      tags:
+      - analytics
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login a user with the provided credentials
+      parameters:
+      - description: User login data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.LoginUserDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User logged in successfully
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+      summary: Login a user
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Logs out the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+      summary: Logout user
+      tags:
+      - auth
   /auth/register:
     post:
       consumes:
@@ -93,6 +229,84 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /delete/{slug}:
+    delete:
+      description: Delete a shortened URL by its slug
+      parameters:
+      - description: Slug of the URL to delete
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: URL deleted successfully
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "404":
+          description: Slug not found
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+      summary: Delete a shortened URL
+      tags:
+      - url
+  /list:
+    get:
+      description: List all shortened URLs for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of user URLs
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+      summary: List user URLs
+      tags:
+      - url
+  /shorten:
+    post:
+      consumes:
+      - application/json
+      description: Create a shortened URL for the provided long URL
+      parameters:
+      - description: URL to shorten
+        in: body
+        name: url
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.CreateURLDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Short URL created successfully
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dtos.StructuredResponse'
+      summary: Shorten a URL
+      tags:
+      - url
 securityDefinitions:
   BearerAuth:
     description: 'Enter the token with the `Bearer: ` prefix, e.g. ''Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'''

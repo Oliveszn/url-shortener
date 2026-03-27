@@ -77,15 +77,14 @@ func main() {
 
 	// Dependencies struct
 	deps := router.Dependencies{
-		Repo:   urlRepo,
-		Redis:  redisCache,
-		DB:     database.DB,
-		Worker: analyticsWorker,
-		Logger: logger.Logger,
-		// BaseURL: "http://localhost:" + cfg.ServerPort,
+		Repo:    urlRepo,
+		Redis:   redisCache,
+		DB:      database.DB,
+		Worker:  analyticsWorker,
+		Logger:  logger.Logger,
+		BaseURL: cfg.BASE_URL,
 	}
 
-	// router := router.NewRouter(database.DB, logger.Logger, redisCache)
 	router := router.NewRouter(deps)
 
 	log.Printf("Server running on port %s", cfg.ServerPort)

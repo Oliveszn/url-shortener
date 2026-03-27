@@ -18,6 +18,8 @@ type Config struct {
 	REDIS_ADDR     string
 	REDIS_PASSWORD string
 	REDIS_DB       int
+
+	BASE_URL string
 }
 
 func Load() (Config, error) {
@@ -54,15 +56,17 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
-	redisPassword, err := extractEnv("REDIS_PASSWORD")
-	if err != nil {
-		return Config{}, err
-	}
+	redisPassword := extractEnvOptional("REDIS_PASSWORD")
 
 	redisDB, _ := extractEnv("REDIS_DB")
 	dbInt, err := strconv.Atoi(redisDB)
 	if err != nil {
-		return Config{}, fmt.Errorf("invalid REDIS_DB")
+		return Config{}, err
+	}
+
+	base_url, err := extractEnv("BASE_URL")
+	if err != nil {
+		return Config{}, err
 	}
 	return Config{
 		MongoURI:       mongoURI,
@@ -73,6 +77,7 @@ func Load() (Config, error) {
 		REDIS_ADDR:     redisAddr,
 		REDIS_PASSWORD: redisPassword,
 		REDIS_DB:       dbInt,
+		BASE_URL:       base_url,
 	}, nil
 }
 
@@ -84,6 +89,10 @@ func extractEnv(key string) (string, error) {
 	}
 
 	return val, nil
+}
+
+func extractEnvOptional(key string) string {
+	return os.Getenv(key)
 }
 
 var config *Config

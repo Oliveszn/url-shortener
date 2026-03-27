@@ -18,7 +18,7 @@ type Mongo struct {
 
 func Connect(ctx context.Context, cfg config.Config) (*Mongo, error) {
 
-	connectCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	connectCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
 	clientOpts := options.Client().ApplyURI(cfg.MongoURI)
@@ -28,7 +28,6 @@ func Connect(ctx context.Context, cfg config.Config) (*Mongo, error) {
 		return nil, fmt.Errorf("mongo connection failed: %w", err)
 	}
 
-	// Verify the connection actually works
 	if err := client.Ping(connectCtx, nil); err != nil {
 		return nil, fmt.Errorf("mongo ping failed: %w", err)
 	}

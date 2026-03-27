@@ -72,10 +72,6 @@ func (h *AnalyticsHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	defer cursor.Close(context.Background())
 
 	var result []bson.M
-	// if err := cursor.All(context.Background(), &result); err != nil {
-	//     http.Error(w, "failed", http.StatusInternalServerError)
-	//     return
-	// }
 
 	h.ReturnJSONResponse(w, dtos.StructuredResponse{
 		Success: true,

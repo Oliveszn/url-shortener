@@ -6,11 +6,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-//1. slug is the primary key, not a surrogate bigint, either auto genrated or user chosen custom-alias
-//2. custom alias is a unique nullable column spearate from slug,
-//3. user_id is nullable, we allow link anonymous creation, has no owner and cant be managed after creation
-//4. expires_at is a pointer cos its nullable, link without expiry live forever, the redirect service checks this column and return 410 gone for expired links
-//5. active is a flag for soft delete, hard deletes make audit trails and analytics orpahned we flip active = false instead and filter in queries
+// custom alias is a unique nullable column spearate from slug,
+// user_id is nullable, we allow link anonymous creation, has no owner and cant be managed after creation
+// expires_at is a pointer cos its nullable, link without expiry live forever, the redirect service checks this column and return 410 gone for expired links
+// active is a flag for soft delete, hard deletes make audit trails and analytics orpahned we flip active = false instead and filter in queries
 
 type URL struct {
 	ID      bson.ObjectID `bson:"_id,omitempty" json:"id"`

@@ -8,6 +8,7 @@ import (
 	"url-shortener/internals/dtos"
 	"url-shortener/internals/repository"
 
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
@@ -34,7 +35,9 @@ func NewRedirectHandler(repo *repository.URLRepository, c *cache.RedisCache, w *
 // @Failure 500 {object} dtos.StructuredResponse "Internal server error"
 // @Router /{slug} [get]
 func (h *RedirectHandler) Redirect(w http.ResponseWriter, r *http.Request) {
-	slug := r.PathValue("slug")
+	// slug := r.PathValue("slug")
+	vars := mux.Vars(r)
+	slug := vars["slug"]
 	if slug == "" {
 		h.ReturnJSONResponse(w, dtos.StructuredResponse{
 			Success: false,

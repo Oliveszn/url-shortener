@@ -12,12 +12,12 @@ import (
 )
 
 type Dependencies struct {
-	Repo   *repository.URLRepository
-	Redis  *cache.RedisCache
-	DB     *mongo.Database
-	Worker *analytics.Worker
-	Logger *zap.Logger
-	// BaseURL         string
+	Repo    *repository.URLRepository
+	Redis   *cache.RedisCache
+	DB      *mongo.Database
+	Worker  *analytics.Worker
+	Logger  *zap.Logger
+	BaseURL string
 }
 
 func NewRouter(deps Dependencies) *mux.Router {
@@ -45,16 +45,16 @@ func NewRouter(deps Dependencies) *mux.Router {
 	HandleAuthRoutes(authRouter, deps.DB, deps.Logger)
 
 	//URL routes
-	HandleURLRoutes(api, deps.DB, deps.Logger, deps.Redis)
+	HandleURLRoutes(api, deps.DB, deps.Logger, deps.Redis, deps.BaseURL)
 
 	//Redirect routes
-	HandleRedirectRoutes(api, deps.Repo, deps.Logger, deps.Redis, deps.Worker)
+	HandleRedirectRoutes(router, deps.Repo, deps.Logger, deps.Redis, deps.Worker)
 
 	//Analytics Route
 	HandleAnalyticsRoute(api, deps.DB, deps.Logger)
 
 	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
-		httpSwagger.URL("/swagger/doc.json"), // The URL pointing to API definition
+		httpSwagger.URL("/swagger/doc.json"),
 		httpSwagger.DeepLinking(true),
 		httpSwagger.DocExpansion("none"),
 		httpSwagger.DomID("swagger-ui"),

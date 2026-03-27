@@ -11,11 +11,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func HandleURLRoutes(api *mux.Router, db *mongo.Database, logger *zap.Logger, redisCache *cache.RedisCache) {
+func HandleURLRoutes(api *mux.Router, db *mongo.Database, logger *zap.Logger, redisCache *cache.RedisCache, baseURL string) {
 
-	urlHandler := handlers.NewURLHandler(db, redisCache, logger)
+	urlHandler := handlers.NewURLHandler(db, redisCache, logger, baseURL)
 
 	api.Handle("/shorten", middleware.OptionalAuth(http.HandlerFunc(urlHandler.Shorten))).Methods(http.MethodPost)
 	api.Handle("/list", middleware.RequireAuth(http.HandlerFunc(urlHandler.List))).Methods(http.MethodGet)
-	api.Handle("/delete", middleware.RequireAuth(http.HandlerFunc(urlHandler.Delete))).Methods(http.MethodDelete)
+	api.Handle("/delete/{slug}", middleware.RequireAuth(http.HandlerFunc(urlHandler.Delete))).Methods(http.MethodDelete)
 }

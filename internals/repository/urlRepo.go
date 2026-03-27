@@ -75,10 +75,6 @@ func (r *URLRepository) GetBySlug(ctx context.Context, slug string) (*models.URL
 	filter := bson.M{
 		"slug":   slug,
 		"active": true,
-		"$or": []bson.M{
-			{"expiresAt": nil},
-			{"expiresAt": bson.M{"$gt": time.Now()}},
-		},
 	}
 
 	var u models.URL
@@ -103,8 +99,8 @@ func (r *URLRepository) ListByUser(
 ) ([]*models.URL, error) {
 
 	filter := bson.M{
-		"userId": userID,
-		"active": true,
+		"user_id": userID,
+		"active":  true,
 	}
 
 	opts := options.Find().
@@ -135,15 +131,14 @@ func (r *URLRepository) ListByUser(
 func (r *URLRepository) Deactivate(ctx context.Context, slug string, userID bson.ObjectID) error {
 
 	filter := bson.M{
-		"slug":   slug,
-		"userId": userID,
-		"active": true,
+		"slug":    slug,
+		"user_id": userID,
+		"active":  true,
 	}
 
 	update := bson.M{
 		"$set": bson.M{
-			"active":    false,
-			"updatedAt": time.Now(),
+			"active": false,
 		},
 	}
 
