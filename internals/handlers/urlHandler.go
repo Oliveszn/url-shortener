@@ -38,7 +38,7 @@ func NewURLHandler(db *mongo.Database, c *cache.RedisCache, logger *zap.Logger, 
 // @Failure 500 {object} dtos.StructuredResponse "Internal server error"
 // @Router /shorten [post]
 func (h *URLHandler) Shorten(w http.ResponseWriter, r *http.Request) {
-
+	h.Logger.Info("Shorten URL request received")
 	var req dtos.CreateURLDto
 
 	if !h.DecodeJSONBody(w, r, &req) {
@@ -46,9 +46,15 @@ func (h *URLHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, err := h.service.CreateURL(r.Context(), req)
-
+	h.Logger.Debug("Shorten request payload",
+		zap.String("url", req.URL),
+		zap.String("customAlias", *req.CustomAlias),
+	)
 	if err != nil {
-		h.Logger.Error("failed to create short url", zap.Error(err))
+		h.Logger.Error("Failed to create short URL",
+			zap.String("url", req.URL),
+			zap.Error(err),
+		)
 
 		h.ReturnJSONResponse(w, dtos.StructuredResponse{
 			Success: false,
@@ -69,7 +75,7 @@ func (h *URLHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} dtos.StructuredResponse "Internal server error"
 // @Router /list [get]
 func (h *URLHandler) List(w http.ResponseWriter, r *http.Request) {
-
+	h.Logger.Info("List URLs request received")
 	response, err := h.service.ListUserURLs(r.Context())
 
 	if err != nil {
@@ -93,7 +99,11 @@ func (h *URLHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	slug := vars["slug"]
+	h.Logger.Info("Delete URL request received",
+		zap.String("slug", slug),
+	)
 	if slug == "" {
+		h.Logger.Warn("Delete URL failed - missing slug")
 		h.ReturnJSONResponse(w, dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusBadRequest,

@@ -35,10 +35,14 @@ func NewRedirectHandler(repo *repository.URLRepository, c *cache.RedisCache, w *
 // @Failure 500 {object} dtos.StructuredResponse "Internal server error"
 // @Router /{slug} [get]
 func (h *RedirectHandler) Redirect(w http.ResponseWriter, r *http.Request) {
-	// slug := r.PathValue("slug")
+
 	vars := mux.Vars(r)
 	slug := vars["slug"]
+	h.Logger.Info("Redirect request received",
+		zap.String("slug", slug),
+	)
 	if slug == "" {
+		h.Logger.Warn("Redirect failed - missing slug")
 		h.ReturnJSONResponse(w, dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusNotFound,
@@ -49,7 +53,12 @@ func (h *RedirectHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 
 	// Cache
 	if h.cache != nil {
+
 		if longURL, err := h.cache.Get(r.Context(), slug); err == nil {
+			h.Logger.Info("Redirect cache hit",
+				zap.String("slug", slug),
+				zap.String("longUrl", longURL),
+			)
 			h.worker.Track(r, slug)
 			http.Redirect(w, r, longURL, http.StatusFound)
 			return
@@ -59,7 +68,10 @@ func (h *RedirectHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 	// Mongo DB
 	u, err := h.repo.GetBySlug(r.Context(), slug)
 	if err != nil {
-		h.Logger.Error("redirect failed", zap.Error(err))
+		h.Logger.Error("Failed to fetch URL from DB",
+			zap.String("slug", slug),
+			zap.Error(err),
+		)
 
 		h.ReturnJSONResponse(w, dtos.StructuredResponse{
 			Success: false,

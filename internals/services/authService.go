@@ -32,6 +32,9 @@ func (s *AuthService) RegisterUser(ctx context.Context, registerUserDto dtos.Reg
 	pass := registerUserDto.Password
 
 	if email == "" || pass == "" {
+		s.logger.Warn("Missing email or password",
+			zap.String("email", email),
+		)
 		return dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusBadRequest,
@@ -41,6 +44,9 @@ func (s *AuthService) RegisterUser(ctx context.Context, registerUserDto dtos.Reg
 	}
 
 	if len(pass) < 6 {
+		s.logger.Warn("Weak password attempt",
+			zap.String("email", email),
+		)
 		return dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusBadRequest,
@@ -51,6 +57,9 @@ func (s *AuthService) RegisterUser(ctx context.Context, registerUserDto dtos.Reg
 
 	_, err := s.repo.FindByEmail(ctx, email)
 	if err == nil {
+		s.logger.Warn("Registration attempt with existing email",
+			zap.String("email", email),
+		)
 		return dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusConflict,
@@ -80,7 +89,10 @@ func (s *AuthService) RegisterUser(ctx context.Context, registerUserDto dtos.Reg
 
 	user, err = s.repo.Create(ctx, user)
 	if err != nil {
-		s.logger.Error("Failed to create user", zap.Error(err))
+		s.logger.Error("Failed to create user",
+			zap.String("email", email),
+			zap.Error(err),
+		)
 		return dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusInternalServerError,
@@ -91,6 +103,10 @@ func (s *AuthService) RegisterUser(ctx context.Context, registerUserDto dtos.Reg
 
 	token, err := utils.GenerateToken(user)
 	if err != nil {
+		s.logger.Error("Failed to generate token",
+			zap.String("userId", user.ID.Hex()),
+			zap.Error(err),
+		)
 		return dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusInternalServerError,
@@ -99,6 +115,10 @@ func (s *AuthService) RegisterUser(ctx context.Context, registerUserDto dtos.Reg
 		}, err
 	}
 
+	s.logger.Info("User registered successfully",
+		zap.String("userId", user.ID.Hex()),
+		zap.String("email", user.Email),
+	)
 	return dtos.StructuredResponse{
 		Success: true,
 		Status:  http.StatusCreated,
@@ -110,6 +130,7 @@ func (s *AuthService) RegisterUser(ctx context.Context, registerUserDto dtos.Reg
 			"token": token,
 		},
 	}, nil
+
 }
 
 func (s *AuthService) LoginUser(ctx context.Context, loginUserDto dtos.LoginUserDto) (dtos.StructuredResponse, error) {
@@ -117,6 +138,9 @@ func (s *AuthService) LoginUser(ctx context.Context, loginUserDto dtos.LoginUser
 	pass := loginUserDto.Password
 
 	if email == "" || pass == "" {
+		s.logger.Warn("Login attempt with missing credentials",
+			zap.String("email", email),
+		)
 		return dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusBadRequest,
@@ -127,6 +151,9 @@ func (s *AuthService) LoginUser(ctx context.Context, loginUserDto dtos.LoginUser
 
 	user, err := s.repo.FindByEmail(ctx, email)
 	if err != nil {
+		s.logger.Warn("Login failed - user not found",
+			zap.String("email", email),
+		)
 		return dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusUnauthorized,
@@ -136,6 +163,9 @@ func (s *AuthService) LoginUser(ctx context.Context, loginUserDto dtos.LoginUser
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(pass)); err != nil {
+		s.logger.Warn("Login failed - incorrect password",
+			zap.String("email", email),
+		)
 		return dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusConflict,
@@ -146,6 +176,10 @@ func (s *AuthService) LoginUser(ctx context.Context, loginUserDto dtos.LoginUser
 
 	token, err := utils.GenerateToken(user)
 	if err != nil {
+		s.logger.Error("Failed to generate token",
+			zap.String("userId", user.ID.Hex()),
+			zap.Error(err),
+		)
 		return dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusInternalServerError,
@@ -154,6 +188,10 @@ func (s *AuthService) LoginUser(ctx context.Context, loginUserDto dtos.LoginUser
 		}, err
 	}
 
+	s.logger.Info("User logged in successfully",
+		zap.String("userId", user.ID.Hex()),
+		zap.String("email", user.Email),
+	)
 	return dtos.StructuredResponse{
 		Success: true,
 		Status:  http.StatusOK,
@@ -168,6 +206,7 @@ func (s *AuthService) LoginUser(ctx context.Context, loginUserDto dtos.LoginUser
 }
 
 func (s *AuthService) LogoutUser(ctx context.Context) (dtos.StructuredResponse, error) {
+
 	return dtos.StructuredResponse{
 		Success: true,
 		Status:  http.StatusOK,

@@ -46,7 +46,7 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	response, err := h.service.RegisterUser(r.Context(), req)
 
 	if err != nil {
-		h.Logger.Error("Failed to register user", zap.Error(err))
+		h.Logger.Warn("Failed to register user", zap.Error(err))
 		h.ReturnJSONResponse(w, dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusInternalServerError,
@@ -83,7 +83,7 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	response, err := h.service.LoginUser(r.Context(), req)
 
 	if err != nil {
-		h.Logger.Error("Failed to login user", zap.Error(err))
+		h.Logger.Warn("Failed to login user", zap.Error(err))
 		h.ReturnJSONResponse(w, dtos.StructuredResponse{
 			Success: false,
 			Status:  http.StatusInternalServerError,
