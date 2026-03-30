@@ -8,6 +8,7 @@ import (
 	"url-shortener/internals/cache"
 	"url-shortener/internals/config"
 	db "url-shortener/internals/database"
+	"url-shortener/internals/limiter"
 	"url-shortener/internals/logger"
 	"url-shortener/internals/repository"
 	"url-shortener/internals/router"
@@ -75,14 +76,16 @@ func main() {
 	analyticsWorker := analytics.NewWorker(clickRepo, 1000)
 	go analyticsWorker.Run(workerCtx)
 
+	rl := limiter.NewLimiter(redisCache.Client())
 	// Dependencies struct
 	deps := router.Dependencies{
-		Repo:    urlRepo,
-		Redis:   redisCache,
-		DB:      database.DB,
-		Worker:  analyticsWorker,
-		Logger:  logger.Logger,
-		BaseURL: cfg.BASE_URL,
+		Repo:        urlRepo,
+		Redis:       redisCache,
+		DB:          database.DB,
+		Worker:      analyticsWorker,
+		Logger:      logger.Logger,
+		RateLimiter: rl,
+		BaseURL:     cfg.BASE_URL,
 	}
 
 	router := router.NewRouter(deps)

@@ -12,10 +12,10 @@ import (
 	"go.uber.org/zap"
 )
 
-func HandleRedirectRoutes(api *mux.Router, repo *repository.URLRepository, logger *zap.Logger, redisCache *cache.RedisCache, worker *analytics.Worker) {
+func HandleRedirectRoutes(api *mux.Router, repo *repository.URLRepository, logger *zap.Logger, redisCache *cache.RedisCache, worker *analytics.Worker, rlRedirect mux.MiddlewareFunc) {
 
 	redirectHandler := handlers.NewRedirectHandler(repo, redisCache, worker, logger)
 
-	api.Handle("/{slug}", middleware.OptionalAuth(http.HandlerFunc(redirectHandler.Redirect))).Methods(http.MethodGet)
+	api.Handle("/{slug}", middleware.OptionalAuth(rlRedirect(http.HandlerFunc(redirectHandler.Redirect)))).Methods(http.MethodGet)
 
 }

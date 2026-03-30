@@ -88,6 +88,10 @@ func (c *RedisCache) Delete(ctx context.Context, slug string) error {
 	return nil
 }
 
+func (c *RedisCache) Client() *redis.Client {
+	return c.client
+}
+
 // Close shuts down the Redis connection pool gracefully.
 func (c *RedisCache) Close() error {
 	return c.client.Close()
